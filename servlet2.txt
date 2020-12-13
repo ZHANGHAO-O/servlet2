@@ -1,0 +1,96 @@
+package com.ajax.servlet;
+
+import com.ajax.util.DBUtility;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import static java.util.Locale.CHINA;
+
+@WebServlet("/post-message.api")
+public class PostMessageServlet extends HttpServlet {
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        req.setCharacterEncoding("utf-8");
+        resp.setCharacterEncoding("utf-8");
+
+        String who = req.getParameter("who");
+        String what = req.getParameter("what");
+
+        insertIntoMessage(who, what);
+        resp.sendRedirect("message-list.html");
+    }
+
+    private void insertIntoMessage(String who, String what) {
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", CHINA);
+        Date now = new Date();
+        String nowStr = dateFormat.format(now);
+        System.out.println(nowStr);
+
+        try (Connection connection = DBUtility.getConnection()) {
+            String sql = "INSERT INTO message (who, `when`, what) VALUES (?, ?, ?)";
+            try (PreparedStatement s = connection.prepareStatement(sql)) {
+                s.setString(1, who);
+                s.setString(2, nowStr);
+                s.setString(3, what);
+
+                s.executeUpdate();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+package com.ajax.util;
+
+import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
+
+public class DBUtility {
+    private static final DataSource dataSource;
+
+    static {
+        MysqlDataSource mysqlDataSource = new MysqlDataSource();
+
+        mysqlDataSource.setServerName("127.0.0.1");
+        mysqlDataSource.setPort(3306);
+        mysqlDataSource.setUser("root");
+        mysqlDataSource.setPassword("996530");
+        mysqlDataSource.setDatabaseName("db2020");
+        mysqlDataSource.setUseSSL(false);
+        mysqlDataSource.setCharacterEncoding("utf8");
+
+        dataSource = mysqlDataSource;
+    }
+
+    public static Connection getConnection() throws SQLException {
+        return dataSource.getConnection();
+    }
+}
+
+create database db2020 charset utf8mb4;
+use db2020;;
+create table message(
+    id int primary key auto_increment,
+    who varchar(100) not null ,
+    `when` datetime not null ,
+    what varchar(200)
+
+);
+select * from message;
+select id, who,`when`,what from message order by id desc;
+drop table message;
